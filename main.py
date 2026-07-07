@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Response
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -6,35 +6,28 @@ app = FastAPI()
 EMAIL = "24f2006027@ds.study.iitm.ac.in"
 API_KEY = "ak_relr3o507bdft10bjag3iyaa"
 
-# Enable CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 
 @app.get("/")
-async def root():
+def root():
     return {"status": "running"}
 
 
-@app.options("/analytics")
-async def analytics_options():
-    return Response(status_code=200)
-
-
 @app.post("/analytics")
-async def analytics(request: Request):
-    api_key = request.headers.get("X-API-Key")
-
-    if api_key != API_KEY:
+def analytics(
+    events: list[dict],
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-    events = await request.json()
 
     total_events = len(events)
     users = set()
