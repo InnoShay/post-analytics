@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -13,17 +13,22 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
 @app.get("/")
-def root():
+async def root():
     return {"status": "running"}
+
+
+@app.options("/analytics")
+async def analytics_options():
+    return Response(status_code=200)
 
 
 @app.post("/analytics")
 async def analytics(request: Request):
-    # Read API key from header
     api_key = request.headers.get("X-API-Key")
 
     if api_key != API_KEY:
@@ -32,7 +37,7 @@ async def analytics(request: Request):
     events = await request.json()
 
     total_events = len(events)
-    unique_users = set()
+    users = set()
     revenue = 0.0
     user_totals = {}
 
@@ -40,9 +45,8 @@ async def analytics(request: Request):
         user = event["user"]
         amount = float(event["amount"])
 
-        unique_users.add(user)
+        users.add(user)
 
-        # Only positive amounts contribute
         if amount > 0:
             revenue += amount
             user_totals[user] = user_totals.get(user, 0.0) + amount
@@ -52,7 +56,7 @@ async def analytics(request: Request):
     return {
         "email": EMAIL,
         "total_events": total_events,
-        "unique_users": len(unique_users),
+        "unique_users": len(users),
         "revenue": revenue,
         "top_user": top_user,
     }
